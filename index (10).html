@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reel Script — Script AI · Moduso</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --void:#0A0A0A; --ivory:#F5F5F0; --white:#FFFFFF; --pulse:#C8F135;
+  --signal:#6E6BFF; --muted:#6B6B6B; --border:#E8E8E3;
+  --border-light:#F0F0EB; --border-dark:#1E1E1E;
+  --radius:12px; --radius-sm:8px; --px:2rem;
+  --nav-h:60px; --sidebar-w:300px;
+  --shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 24px rgba(0,0,0,0.08);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--white);color:var(--void);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);background:rgba(255,255,255,0.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border-light);display:flex;align-items:center;padding:0 var(--px);gap:2rem;z-index:100}
+.nav-logo{font-size:1rem;font-weight:900;letter-spacing:-0.02em;color:var(--void);text-decoration:none}
+.nav-logo span{color:var(--pulse)}
+.nav-links{display:flex;gap:1.5rem;list-style:none;flex:1}
+.nav-links a{font-size:0.8rem;font-weight:500;color:var(--muted);text-decoration:none;transition:color 0.15s}
+.nav-links a:hover,.nav-links a.active{color:var(--void)}
+.nav-right{display:flex;align-items:center;gap:0.75rem;margin-left:auto}
+.nav-profile{display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0.75rem;border:1px solid var(--border);border-radius:100px;font-size:0.78rem;font-weight:600;cursor:pointer;background:var(--white);transition:border-color 0.15s}
+.nav-profile:hover{border-color:var(--void)}
+.nav-avatar{width:22px;height:22px;background:var(--pulse);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--void)}
+
+/* BTN */
+.btn{display:inline-flex;align-items:center;gap:0.4rem;padding:0.6rem 1.2rem;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer;border:none;transition:all 0.15s;text-decoration:none;white-space:nowrap;letter-spacing:-0.01em}
+.btn-primary{background:var(--void);color:var(--ivory)}
+.btn-primary:hover{background:#1a1a1a;transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-pulse{background:var(--pulse);color:var(--void)}
+.btn-pulse:hover{background:#b8e020;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--void);color:var(--void)}
+.btn-sm{padding:0.45rem 0.9rem;font-size:0.75rem}
+.btn-lg{padding:0.8rem 1.75rem;font-size:0.85rem}
+.btn-full{width:100%;justify-content:center}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;gap:0.3rem;padding:0.2rem 0.6rem;border-radius:100px;font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase}
+.badge--live{background:rgba(200,241,53,0.15);color:#5a7a00}
+.eyebrow{font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)}
+
+/* LAYOUT */
+.app{display:flex;padding-top:var(--nav-h);min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);border-right:1px solid var(--border-light);height:calc(100vh - var(--nav-h));position:sticky;top:var(--nav-h);overflow-y:auto;background:var(--ivory);display:flex;flex-direction:column}
+.sidebar::-webkit-scrollbar{width:0}
+.sidebar-header{padding:1.5rem 1.5rem 1.25rem;border-bottom:1px solid var(--border)}
+.sidebar-title{font-size:1rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:0.2rem}
+.sidebar-sub{font-size:0.72rem;color:var(--muted)}
+
+/* PROFILO CARD */
+.profile-card{margin:1rem 1.25rem;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.875rem 1rem;display:flex;align-items:center;gap:0.75rem;cursor:pointer;transition:border-color 0.15s}
+.profile-card:hover{border-color:var(--void)}
+.profile-av{width:36px;height:36px;background:var(--pulse);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:var(--void);flex-shrink:0}
+.profile-info{flex:1;min-width:0}
+.profile-nome{font-size:0.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile-settore{font-size:0.7rem;color:var(--muted);margin-top:1px}
+
+/* FORM */
+.form-section{padding:1.25rem 1.25rem 0;flex:1}
+.field{margin-bottom:1.1rem}
+.field-label{display:block;font-size:0.65rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem}
+.field-textarea{width:100%;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.7rem 0.875rem;color:var(--void);font-family:'Inter',sans-serif;font-size:0.82rem;line-height:1.6;resize:vertical;min-height:95px;outline:none;transition:border-color 0.15s}
+.field-textarea:focus{border-color:var(--void)}
+.field-textarea::placeholder{color:#aaa}
+.field-input{width:100%;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.65rem 0.875rem;color:var(--void);font-family:'Inter',sans-serif;font-size:0.82rem;outline:none;transition:border-color 0.15s}
+.field-input:focus{border-color:var(--void)}
+.field-input::placeholder{color:#aaa}
+.field-select{width:100%;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.65rem 0.875rem;color:var(--void);font-family:'Inter',sans-serif;font-size:0.82rem;outline:none;-webkit-appearance:none;transition:border-color 0.15s;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236B6B6B' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 0.875rem center;padding-right:2rem}
+.field-select:focus{border-color:var(--void)}
+
+/* CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:0.4rem}
+.chip{padding:0.3rem 0.75rem;border-radius:100px;font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--white);transition:all 0.12s;user-select:none}
+.chip:hover{border-color:var(--void);color:var(--void)}
+.chip.on{background:var(--void);color:var(--ivory);border-color:var(--void)}
+
+/* QUOTA */
+.quota-wrap{padding:1rem 1.25rem;border-top:1px solid var(--border)}
+.quota-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem}
+.quota-label{font-size:0.7rem;color:var(--muted)}
+.quota-count{font-size:0.72rem;font-weight:700;color:var(--void)}
+.quota-track{height:3px;background:var(--border);border-radius:3px;overflow:hidden}
+.quota-fill{height:100%;background:var(--pulse);border-radius:3px;transition:width 0.4s ease}
+
+/* GENERA BTN */
+.genera-wrap{padding:1rem 1.25rem 1.25rem;border-top:1px solid var(--border)}
+
+/* MAIN */
+.main-panel{flex:1;min-width:0;display:flex;flex-direction:column}
+
+/* STEP BAR */
+.step-bar{padding:0.875rem 2rem;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:0.75rem;background:var(--white)}
+.step-item{display:flex;align-items:center;gap:0.5rem;font-size:0.72rem;font-weight:600;color:var(--muted)}
+.step-item.active{color:var(--void)}
+.step-item.done{color:var(--pulse)}
+.step-dot{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--muted);flex-shrink:0}
+.step-item.active .step-dot{border-color:var(--void);color:var(--void);background:var(--ivory)}
+.step-item.done .step-dot{border-color:var(--pulse);background:var(--pulse);color:var(--void)}
+.step-line{flex:1;height:1px;background:var(--border);max-width:40px}
+
+/* EMPTY */
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 2rem;text-align:center;background:var(--white)}
+.empty-icon{width:56px;height:56px;background:var(--ivory);border:1px solid var(--border);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 1.5rem}
+.empty-title{font-size:1.35rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:0.5rem}
+.empty-sub{font-size:0.85rem;color:var(--muted);max-width:380px;line-height:1.65}
+
+/* LOADER */
+.loader-state{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.25rem;padding:4rem;background:var(--white)}
+.loader-state.on{display:flex}
+.loader-ring{width:36px;height:36px;border:2.5px solid var(--border);border-top-color:var(--void);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-title{font-size:0.95rem;font-weight:700;letter-spacing:-0.02em}
+.loader-sub{font-size:0.78rem;color:var(--muted);margin-top:-0.75rem}
+
+/* REFERENCE */
+.reference-state{flex:1;display:none;flex-direction:column;background:var(--white)}
+.reference-state.on{display:flex}
+.reference-header{padding:1.75rem 2rem 1.25rem;border-bottom:1px solid var(--border-light)}
+.reference-title{font-size:1.1rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:0.3rem}
+.reference-sub{font-size:0.82rem;color:var(--muted);max-width:560px;line-height:1.6}
+.reference-grid{padding:1.5rem 2rem;display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;flex:1}
+.ref-card{border:2px solid var(--border);border-radius:var(--radius);padding:1.25rem;cursor:pointer;transition:all 0.15s;background:var(--white);display:flex;flex-direction:column;gap:0.75rem;position:relative}
+.ref-card:hover{border-color:var(--void);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.ref-card.selected{border-color:var(--pulse);background:rgba(200,241,53,0.03)}
+.ref-card.selected::after{content:'✓';position:absolute;top:0.75rem;right:0.75rem;width:22px;height:22px;background:var(--pulse);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:var(--void)}
+.ref-num{font-size:0.6rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)}
+.ref-thumb{width:100%;aspect-ratio:9/16;background:var(--void);border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;max-height:160px;overflow:hidden}
+.ref-thumb-icon{font-size:26px;opacity:0.35}
+.ref-thumb-label{font-size:0.62rem;color:rgba(255,255,255,0.25);text-align:center;padding:0 0.5rem;line-height:1.4}
+.ref-title{font-size:0.82rem;font-weight:700;line-height:1.4;letter-spacing:-0.01em}
+.ref-meta{display:flex;gap:0.75rem}
+.ref-stat{font-size:0.7rem;color:var(--muted);display:flex;align-items:center;gap:0.25rem}
+.ref-reason{font-size:0.75rem;color:var(--muted);line-height:1.5;padding-top:0.5rem;border-top:1px solid var(--border-light)}
+.ref-link{display:inline-flex;align-items:center;gap:0.35rem;font-size:0.72rem;font-weight:600;color:var(--signal);text-decoration:none}
+.ref-link:hover{text-decoration:underline}
+.reference-footer{padding:1.25rem 2rem;border-top:1px solid var(--border-light);display:flex;align-items:center;gap:0.75rem;background:var(--ivory)}
+.ref-footer-note{font-size:0.78rem;color:var(--muted);flex:1}
+
+/* OUTPUT */
+.output-wrap{display:none;flex-direction:column;flex:1}
+.output-wrap.on{display:flex}
+.output-header{padding:1.25rem 2rem;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:1rem;background:var(--ivory)}
+.output-topic{font-size:0.82rem;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.output-actions{display:flex;gap:0.5rem;flex-shrink:0}
+.output-reference{padding:0.875rem 2rem;background:rgba(110,107,255,0.05);border-bottom:1px solid rgba(110,107,255,0.12);display:flex;align-items:center;gap:0.75rem}
+.output-reference-label{font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--signal)}
+.output-reference-title{font-size:0.8rem;font-weight:600;flex:1}
+.output-reference-link{font-size:0.72rem;color:var(--signal);text-decoration:none}
+.output-reference-link:hover{text-decoration:underline}
+
+/* TREND SECTION */
+.trend-section{padding:1.75rem 2rem;border-bottom:1px solid var(--border-light);background:var(--void)}
+.section-label{font-size:0.62rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--pulse);margin-bottom:1rem}
+.trends-list{display:flex;flex-direction:column}
+.trend-item{display:flex;align-items:flex-start;gap:1rem;padding:0.875rem 0;border-bottom:1px solid var(--border-dark)}
+.trend-item:last-child{border-bottom:none}
+.trend-n{font-size:0.62rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:rgba(245,245,240,0.25);width:20px;flex-shrink:0;padding-top:2px}
+.trend-body{flex:1;min-width:0}
+.trend-desc{font-size:0.82rem;font-weight:600;color:var(--ivory);margin-bottom:0.25rem}
+.trend-url{font-size:0.72rem;color:var(--signal);text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trend-url:hover{text-decoration:underline}
+.trend-motivo{font-size:0.7rem;color:rgba(245,245,240,0.4);margin-top:0.25rem}
+
+/* TABS */
+.tab-bar{display:flex;border-bottom:1px solid var(--border-light);padding:0 2rem;background:var(--white);overflow-x:auto}
+.tab-bar::-webkit-scrollbar{height:0}
+.tab-btn{padding:1rem 0;margin-right:1.75rem;font-size:0.75rem;font-weight:600;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:color 0.12s,border-color 0.12s;font-family:'Inter',sans-serif;letter-spacing:-0.01em}
+.tab-btn:hover{color:var(--void)}
+.tab-btn.on{color:var(--void);border-bottom-color:var(--void)}
+.tab-pane{display:none}
+.tab-pane.on{display:block}
+.script-block{padding:2rem}
+.script-block-label{font-size:0.62rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem}
+.script-text{font-size:0.9rem;line-height:1.8;color:var(--muted);white-space:pre-wrap}
+.script-text.hero{font-size:1.15rem;font-weight:600;color:var(--void);line-height:1.6;letter-spacing:-0.02em}
+
+/* OUTPUT FOOTER */
+.output-footer{padding:1rem 2rem;border-top:1px solid var(--border-light);display:flex;align-items:center;gap:0.5rem;background:var(--ivory);position:sticky;bottom:0}
+.output-footer-reset{margin-right:auto;font-size:0.75rem;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;transition:color 0.12s}
+.output-footer-reset:hover{color:var(--void)}
+
+/* MODAL */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(10,10,10,0.5);z-index:200;align-items:center;justify-content:center;padding:1.5rem;backdrop-filter:blur(4px)}
+.modal-backdrop.on{display:flex}
+.modal{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:480px;padding:2rem 2rem 1.75rem;box-shadow:0 24px 64px rgba(0,0,0,0.12);animation:popIn 0.2s cubic-bezier(0.34,1.56,0.64,1);max-height:90vh;overflow-y:auto}
+.modal::-webkit-scrollbar{width:0}
+@keyframes popIn{from{opacity:0;transform:scale(0.95) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-eyebrow{margin-bottom:0.5rem}
+.modal-title{font-size:1.4rem;font-weight:900;letter-spacing:-0.03em;margin-bottom:0.4rem}
+.modal-title em{font-style:italic;color:var(--signal)}
+.modal-sub{font-size:0.82rem;color:var(--muted);line-height:1.6;margin-bottom:1.75rem}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem}
+
+/* ARCHIVIO */
+.arch-backdrop{display:none;position:fixed;inset:0;background:rgba(10,10,10,0.4);z-index:150;backdrop-filter:blur(4px)}
+.arch-backdrop.on{display:block}
+.arch-panel{position:fixed;top:0;right:-440px;bottom:0;width:420px;background:var(--white);border-left:1px solid var(--border);z-index:151;display:flex;flex-direction:column;transition:right 0.25s cubic-bezier(0.4,0,0.2,1);box-shadow:-8px 0 32px rgba(0,0,0,0.08)}
+.arch-panel.on{right:0}
+.arch-header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;background:var(--ivory);position:sticky;top:0}
+.arch-title{font-size:0.9rem;font-weight:800;letter-spacing:-0.02em}
+.arch-close{width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--white);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:border-color 0.12s}
+.arch-close:hover{border-color:var(--void)}
+.arch-body{flex:1;overflow-y:auto}
+.arch-item{padding:1rem 1.5rem;border-bottom:1px solid var(--border-light);cursor:pointer;transition:background 0.1s}
+.arch-item:hover{background:var(--ivory)}
+.arch-date{font-size:0.65rem;font-weight:600;letter-spacing:0.05em;color:var(--muted);margin-bottom:0.3rem}
+.arch-topic{font-size:0.85rem;font-weight:700;margin-bottom:0.25rem;letter-spacing:-0.01em}
+.arch-preview{font-size:0.75rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arch-row{display:flex;gap:0.5rem;margin-top:0.625rem}
+.arch-btn{padding:0.3rem 0.7rem;border:1px solid var(--border);border-radius:6px;font-size:0.7rem;font-weight:600;cursor:pointer;background:var(--white);color:var(--muted);font-family:'Inter',sans-serif;transition:all 0.12s}
+.arch-btn:hover{border-color:var(--void);color:var(--void)}
+.arch-btn.del:hover{border-color:#dc2626;color:#dc2626}
+.arch-empty{padding:3rem 1.5rem;text-align:center;color:var(--muted);font-size:0.82rem}
+
+/* TOAST */
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(12px);background:var(--void);color:var(--ivory);padding:0.65rem 1.25rem;border-radius:var(--radius-sm);font-size:0.78rem;font-weight:600;z-index:300;opacity:0;transition:all 0.22s ease;pointer-events:none;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.15)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:#dc2626}
+
+
+/* ── MOBILE ── */
+@media(max-width:900px){
+  .nav-links{display:none}
+  .reference-grid{grid-template-columns:1fr}
+  .arch-panel{width:100%;right:-100%}
+
+  /* Su mobile l'app diventa verticale */
+  .app{flex-direction:column;min-height:100vh}
+
+  /* Sidebar diventa form full-width in cima */
+  .sidebar{
+    width:100%;min-width:100%;
+    height:auto;
+    position:static;
+    border-right:none;
+    border-bottom:1px solid var(--border-light);
+  }
+
+  /* Form section prende tutto lo spazio */
+  .form-section{padding:1.25rem 1rem 0}
+
+  /* Profile card margini mobile */
+  .profile-card{margin:1rem 1rem 0}
+
+  /* Genera wrap mobile */
+  .genera-wrap{padding:1rem}
+
+  /* Quota mobile */
+  .quota-wrap{padding:0.75rem 1rem}
+
+  /* Main panel mobile */
+  .main-panel{min-height:60vh}
+
+  /* Empty state mobile */
+  .empty-state{padding:3rem 1.5rem}
+  .empty-title{font-size:1.15rem}
+
+  /* Reference grid mobile: 1 colonna */
+  .reference-grid{padding:1rem;grid-template-columns:1fr;gap:0.75rem}
+  .reference-header{padding:1.25rem 1rem 1rem}
+  .reference-footer{padding:1rem;flex-wrap:wrap;gap:0.5rem}
+  .ref-footer-note{width:100%;order:-1}
+
+  /* Ref card mobile: orizzontale */
+  .ref-card{flex-direction:row;align-items:flex-start;gap:1rem;padding:1rem}
+  .ref-thumb{width:80px;min-width:80px;max-height:120px;aspect-ratio:9/16}
+  .ref-thumb-icon{font-size:20px}
+  .ref-thumb-label{font-size:0.58rem}
+
+  /* Output mobile */
+  .output-header{padding:1rem;flex-wrap:wrap;gap:0.5rem}
+  .output-topic{width:100%}
+  .output-actions{width:100%;justify-content:flex-end}
+  .output-reference{padding:0.75rem 1rem;flex-wrap:wrap}
+  .trend-section{padding:1.25rem 1rem}
+  .tab-bar{padding:0 1rem}
+  .script-block{padding:1.25rem 1rem}
+  .output-footer{padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem}
+  .output-footer-reset{width:100%;text-align:left}
+
+  /* Step bar mobile */
+  .step-bar{padding:0.75rem 1rem}
+  .step-line{max-width:20px}
+
+  /* Nav mobile */
+  .nav{padding:0 1rem;gap:1rem}
+  .nav-right{gap:0.5rem}
+
+  /* Modal mobile */
+  .modal{padding:1.5rem 1.25rem}
+  .field-row{grid-template-columns:1fr}
+}
+
+@media(max-width:480px){
+  .reference-grid{padding:0.75rem}
+  .ref-card{padding:0.875rem}
+  .ref-thumb{width:70px;min-width:70px}
+  .btn-full{font-size:0.82rem}
+}
+
+
+/* ── AUTH ── */
+.auth-page{display:none;min-height:100vh;background:var(--ivory);align-items:center;justify-content:center;padding:2rem;position:fixed;inset:0;z-index:500}
+.auth-page.on{display:flex}
+.auth-box{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:420px;padding:2.5rem 2rem;box-shadow:var(--shadow-md)}
+.auth-logo{font-size:1.1rem;font-weight:900;letter-spacing:-0.02em;margin-bottom:2rem}
+.auth-logo span{color:var(--pulse)}
+.auth-title{font-size:1.5rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:0.4rem}
+.auth-sub{font-size:0.82rem;color:var(--muted);margin-bottom:1.75rem;line-height:1.55}
+.auth-field{margin-bottom:1rem}
+.auth-label{display:block;font-size:0.65rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem}
+.auth-input{width:100%;background:var(--ivory);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 0.875rem;color:var(--void);font-family:'Inter',sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.15s}
+.auth-input:focus{border-color:var(--void);background:var(--white)}
+.auth-input::placeholder{color:#bbb}
+.auth-btn{width:100%;padding:0.85rem;background:var(--void);color:var(--ivory);font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:700;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:all 0.15s;margin-top:0.5rem}
+.auth-btn:hover{background:#1a1a1a}
+.auth-btn:disabled{opacity:0.5;cursor:not-allowed}
+.auth-switch{text-align:center;font-size:0.82rem;color:var(--muted);margin-top:1.25rem}
+.auth-switch a{color:var(--void);font-weight:700;cursor:pointer;text-decoration:underline}
+.auth-err{background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.2);border-radius:var(--radius-sm);padding:0.75rem 1rem;font-size:0.8rem;color:#dc2626;margin-bottom:1rem;display:none}
+.auth-err.on{display:block}
+.auth-ok{background:rgba(200,241,53,0.1);border:1px solid rgba(200,241,53,0.3);border-radius:var(--radius-sm);padding:0.75rem 1rem;font-size:0.8rem;color:#5a7a00;margin-bottom:1rem;display:none}
+.auth-ok.on{display:block}
+.nav-logout{font-size:0.75rem;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;padding:0.35rem 0.5rem}
+.nav-logout:hover{color:var(--void)}
+</style>
+</head>
+<body>
+<div class="auth-page on" id="authPage">
+  <div class="auth-box">
+    <div class="auth-logo">MODUSO<span>.</span> <span style="font-weight:400;color:var(--muted);font-size:0.85rem;">Reel Script</span></div>
+    <div id="formLogin">
+      <div class="auth-title">Accedi</div>
+      <div class="auth-sub">Inserisci le tue credenziali per accedere a Reel Script.</div>
+      <div class="auth-err" id="errLogin"></div>
+      <div class="auth-field"><label class="auth-label">Email</label><input type="email" class="auth-input" id="inEmail" placeholder="mario@esempio.it" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="auth-field"><label class="auth-label">Password</label><input type="password" class="auth-input" id="inPw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="auth-btn" id="btnLogin" onclick="doLogin()">Accedi →</button>
+      <div class="auth-switch">Non hai un account? <a onclick="mostraReg()">Registrati</a></div>
+    </div>
+    <div id="formReg" style="display:none;">
+      <div class="auth-title">Crea account</div>
+      <div class="auth-sub">Inizia con Reel Script.</div>
+      <div class="auth-err" id="errReg"></div>
+      <div class="auth-ok" id="okReg"></div>
+      <div class="auth-field"><label class="auth-label">Email</label><input type="email" class="auth-input" id="inRegEmail" placeholder="mario@esempio.it"></div>
+      <div class="auth-field"><label class="auth-label">Password</label><input type="password" class="auth-input" id="inRegPw" placeholder="Minimo 8 caratteri"></div>
+      <div class="auth-field"><label class="auth-label">Conferma password</label><input type="password" class="auth-input" id="inRegPw2" placeholder="Ripeti la password"></div>
+      <button class="auth-btn" id="btnReg" onclick="doRegister()">Crea account →</button>
+      <div class="auth-switch">Hai già un account? <a onclick="mostraLogin()">Accedi</a></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="index.html" class="nav-logo">MODUSO<span>.</span></a>
+  <ul class="nav-links">
+    <li><a href="lead-agent.html">Lead Agent</a></li>
+    <li><a href="reel-script.html" class="active">Reel Script</a></li>
+    <li><a href="socialflow.html">SocialFlow</a></li>
+    <li><a href="metodo.html">Metodo</a></li>
+  </ul>
+  <div class="nav-right">
+    <button class="btn btn-ghost btn-sm" onclick="openArch()">Archivio</button>
+    <button class="nav-logout" onclick="doLogout()">Esci</button>
+    <div class="nav-profile" onclick="openEditProfilo()" id="navProfile" style="display:none;">
+      <div class="nav-avatar" id="navAv">M</div>
+      <span id="navNome">Azienda</span>
+    </div>
+  </div>
+</nav>
+
+<!-- MODAL PROFILO -->
+<div class="modal-backdrop on" id="modalProfilo">
+  <div class="modal">
+    <div class="modal-eyebrow"><span class="eyebrow">Reel Script · Moduso</span></div>
+    <div class="modal-title">Benvenuto.<br><em>Parliamo della tua azienda.</em></div>
+    <div class="modal-sub">Usiamo queste informazioni per personalizzare ogni script. Non le chiediamo mai più.</div>
+    <div class="field" style="margin-bottom:0.875rem;">
+      <label class="field-label">Nome azienda o brand *</label>
+      <input type="text" class="field-input" id="m_nome" placeholder="es. Pizzeria da Mario">
+    </div>
+    <div class="field-row" style="margin-bottom:0.875rem;">
+      <div class="field">
+        <label class="field-label">Settore *</label>
+        <select class="field-select" id="m_settore">
+          <option value="">Seleziona</option>
+          <option>Ristorazione</option><option>Moda e abbigliamento</option>
+          <option>Beauty e estetica</option><option>Fitness e sport</option>
+          <option>Artigianato</option><option>Retail e negozi</option>
+          <option>Turismo e hospitality</option><option>Professioni e consulenza</option>
+          <option>Tecnologia</option><option>Arte e creatività</option>
+          <option>Immobiliare</option><option>Salute e benessere</option>
+          <option>Educazione e formazione</option><option>Altro</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Città</label>
+        <input type="text" class="field-input" id="m_citta" placeholder="es. Napoli">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:0.875rem;">
+      <label class="field-label">Descrizione breve</label>
+      <input type="text" class="field-input" id="m_desc" placeholder="es. Pizzeria napoletana con forno a legna dal 1982">
+    </div>
+    <div class="field" style="margin-bottom:0.875rem;">
+      <label class="field-label">Cliente ideale</label>
+      <input type="text" class="field-input" id="m_target" placeholder="es. Famiglie, giovani 25–35, turisti">
+    </div>
+    <div class="field" style="margin-bottom:1.5rem;">
+      <label class="field-label">Tono di comunicazione</label>
+      <div class="chips" id="m_tono">
+        <div class="chip" data-v="Professionale">Professionale</div>
+        <div class="chip on" data-v="Friendly">Friendly</div>
+        <div class="chip" data-v="Ironico">Ironico</div>
+        <div class="chip" data-v="Ispirazionale">Ispirazionale</div>
+        <div class="chip" data-v="Diretto">Diretto</div>
+        <div class="chip" data-v="Storytelling">Storytelling</div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full btn-lg" onclick="saveProfilo()">Inizia a creare script →</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ARCHIVIO -->
+<div class="arch-backdrop" id="archBackdrop" onclick="closeArch()"></div>
+<div class="arch-panel" id="archPanel">
+  <div class="arch-header">
+    <div class="arch-title">Archivio script</div>
+    <button class="arch-close" onclick="closeArch()">✕</button>
+  </div>
+  <div class="arch-body" id="archBody"></div>
+</div>
+
+<!-- APP -->
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Reel Script</div>
+      <div class="sidebar-sub">Script AI per Reels e TikTok</div>
+    </div>
+    <div class="profile-card" onclick="openEditProfilo()" id="profileCard" style="display:none;">
+      <div class="profile-av" id="profAv">M</div>
+      <div class="profile-info">
+        <div class="profile-nome" id="profNome">–</div>
+        <div class="profile-settore" id="profSettore">–</div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);">✎</div>
+    </div>
+    <div class="form-section">
+      <div class="field">
+        <label class="field-label">Argomento del reel *</label>
+        <textarea class="field-textarea" id="f_tema" placeholder="Descrivi l'argomento nel dettaglio.&#10;&#10;es. Voglio mostrare come prepariamo la pizza margherita con ingredienti freschi locali, puntando sulla tradizione della famiglia."></textarea>
+      </div>
+      <div class="field">
+        <label class="field-label">Formato</label>
+        <div class="chips" id="f_formato">
+          <div class="chip on" data-v="Reel Instagram">Reel Instagram</div>
+          <div class="chip" data-v="TikTok">TikTok</div>
+          <div class="chip" data-v="YouTube Short">Short</div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Durata</label>
+        <div class="chips" id="f_durata">
+          <div class="chip on" data-v="15–30 secondi">15–30s</div>
+          <div class="chip" data-v="30–60 secondi">30–60s</div>
+          <div class="chip" data-v="60–90 secondi">60–90s</div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Obiettivo</label>
+        <div class="chips" id="f_obiettivo">
+          <div class="chip on" data-v="Brand awareness">Awareness</div>
+          <div class="chip" data-v="Portare clienti">Clienti</div>
+          <div class="chip" data-v="Mostrare prodotto">Prodotto</div>
+          <div class="chip" data-v="Storytelling">Storytelling</div>
+          <div class="chip" data-v="Educare">Educare</div>
+          <div class="chip" data-v="Promuovere offerta">Offerta</div>
+        </div>
+      </div>
+    </div>
+    <div class="quota-wrap" id="quotaWrap" style="display:none;">
+      <div class="quota-row">
+        <span class="quota-label">Script questo mese</span>
+        <span class="quota-count" id="quotaCount">0 / 12</span>
+      </div>
+      <div class="quota-track"><div class="quota-fill" id="quotaFill" style="width:0%"></div></div>
+    </div>
+    <div class="genera-wrap">
+      <button class="btn btn-primary btn-full btn-lg" id="btnCerca" onclick="cercaReference()">Cerca video reference →</button>
+    </div>
+  </aside>
+
+  <main class="main-panel">
+    <!-- Step bar -->
+    <div class="step-bar" id="stepBar" style="display:none;">
+      <div class="step-item" id="s1"><div class="step-dot">1</div><span>Brief</span></div>
+      <div class="step-line"></div>
+      <div class="step-item" id="s2"><div class="step-dot">2</div><span>Scegli reference</span></div>
+      <div class="step-line"></div>
+      <div class="step-item" id="s3"><div class="step-dot">3</div><span>Script pronto</span></div>
+    </div>
+
+    <!-- Empty -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">✦</div>
+      <div class="empty-title">Il tuo prossimo reel<br>parte da qui.</div>
+      <div class="empty-sub" style="margin-top:0.75rem;">Inserisci il tema, scegli formato e obiettivo. ReelAgent cerca i video TikTok più performanti nel tuo settore — tu scegli il reference e lo script viene costruito su quello stile.</div>
+    </div>
+
+    <!-- Loader -->
+    <div class="loader-state" id="loaderState">
+      <div class="loader-ring"></div>
+      <div class="loader-title" id="loaderTitle">Ricerca in corso…</div>
+      <div class="loader-sub" id="loaderSub">Analizzo TikTok nel tuo settore</div>
+    </div>
+
+    <!-- Reference (step 2) -->
+    <div class="reference-state" id="referenceState">
+      <div class="reference-header">
+        <div class="reference-title">Scegli il tuo video di riferimento</div>
+        <div class="reference-sub">Ho trovato questi video TikTok in target con il tuo settore. Scegli quello che preferisci come stile — lo script verrà costruito su quell'approccio. Oppure procedi senza reference.</div>
+      </div>
+      <div class="reference-grid" id="referenceGrid"></div>
+      <div class="reference-footer">
+        <div class="ref-footer-note" id="refFooterNote">Nessun video selezionato</div>
+        <button class="btn btn-ghost btn-sm" onclick="generaSenzaRef()">Procedi senza reference</button>
+        <button class="btn btn-primary" id="btnGeneraConRef" onclick="generaConRef()" disabled>Genera script su questo →</button>
+      </div>
+    </div>
+
+    <!-- Output (step 3) -->
+    <div class="output-wrap" id="outputWrap">
+      <div class="output-header">
+        <span class="badge badge--live">● Script generato</span>
+        <span class="output-topic" id="outputTopic">–</span>
+        <div class="output-actions">
+          <button class="btn btn-ghost btn-sm" onclick="copyScript()">Copia</button>
+          <button class="btn btn-ghost btn-sm" onclick="salvaArch()">Salva</button>
+          <button class="btn btn-primary btn-sm" onclick="esportaPDF()">↓ PDF</button>
+        </div>
+      </div>
+      <div class="output-reference" id="outputReference" style="display:none;">
+        <span class="output-reference-label">Reference usata</span>
+        <span class="output-reference-title" id="outputRefTitle">–</span>
+        <a href="#" class="output-reference-link" id="outputRefLink" target="_blank">Apri ↗</a>
+      </div>
+      <div class="trend-section">
+        <div class="section-label">Video TikTok analizzati</div>
+        <div class="trends-list" id="trendsList"></div>
+      </div>
+      <div class="tab-bar">
+        <button class="tab-btn on" onclick="showTab('hook',this)">Hook</button>
+        <button class="tab-btn" onclick="showTab('sviluppo',this)">Sviluppo</button>
+        <button class="tab-btn" onclick="showTab('cta',this)">CTA</button>
+        <button class="tab-btn" onclick="showTab('regia',this)">Regia</button>
+        <button class="tab-btn" onclick="showTab('caption',this)">Caption</button>
+      </div>
+      <div class="tab-pane on" id="tab-hook"><div class="script-block"><div class="script-block-label">Hook — Primi 3 secondi</div><div class="script-text hero" id="out-hook"></div></div></div>
+      <div class="tab-pane" id="tab-sviluppo"><div class="script-block"><div class="script-block-label">Sviluppo narrativo</div><div class="script-text" id="out-sviluppo"></div></div></div>
+      <div class="tab-pane" id="tab-cta"><div class="script-block"><div class="script-block-label">Call to Action</div><div class="script-text" id="out-cta"></div></div></div>
+      <div class="tab-pane" id="tab-regia"><div class="script-block"><div class="script-block-label">Consigli di regia</div><div class="script-text" id="out-regia"></div></div></div>
+      <div class="tab-pane" id="tab-caption"><div class="script-block"><div class="script-block-label">Caption + Hashtag</div><div class="script-text" id="out-caption"></div></div></div>
+      <div class="output-footer">
+        <button class="output-footer-reset" onclick="reset()">← Nuovo script</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyScript()">Copia tutto</button>
+        <button class="btn btn-ghost btn-sm" onclick="salvaArch()">Salva</button>
+        <button class="btn btn-primary btn-sm" onclick="esportaPDF()">↓ PDF</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ══ CONFIG ══
+const SUPABASE_URL='https://ieppaxqszdnymwtizale.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllcHBheHFzemRueW13dGl6YWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NDkzMDgsImV4cCI6MjA5NDAyNTMwOH0.jemVB4YYtDux3_0oa36lVSgpe8ElwkLFeDKpRylfM2I';
+const PLAN='starter',MAX_MESE=12;
+
+// ══ STATO ══
+let sb,user=null,profilo=null,corrente=null,refSelezionata=null,trendTrovati=[],briefCorrente={},scriptMeseCount=0;
+
+// ══ INIT ══
+function init(){
+  // Inizializza Supabase — qui siamo sicuri che lo script CDN è caricato
+  sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  initChips();
+  sb.auth.getSession().then(({data:{session}})=>{
+    if(session){user=session.user;mostraApp();}
+    else{mostraAuth();}
+  });
+  sb.auth.onAuthStateChange((event,session)=>{
+    if(event==='SIGNED_IN'&&session){user=session.user;mostraApp();}
+    else if(event==='SIGNED_OUT'){mostraAuth();}
+  });
+}
+
+// ══ AUTH ══
+function mostraAuth(){
+  document.getElementById('authPage').classList.add('on');
+  showState('empty');
+}
+
+async function mostraApp(){
+  document.getElementById('authPage').classList.remove('on');
+  await caricaProfilo();
+  await caricaQuota();
+  showState('empty');
+}
+
+function mostraLogin(){document.getElementById('formLogin').style.display='block';document.getElementById('formReg').style.display='none';}
+function mostraReg(){document.getElementById('formLogin').style.display='none';document.getElementById('formReg').style.display='block';}
+
+async function doLogin(){
+  const email=document.getElementById('inEmail').value.trim();
+  const pw=document.getElementById('inPw').value;
+  if(!email||!pw){showAuthErr('Login','Inserisci email e password');return;}
+  const btn=document.getElementById('btnLogin');
+  btn.disabled=true;btn.textContent='Accesso…';
+  const{error}=await sb.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='Accedi →';
+  if(error)showAuthErr('Login','Email o password non corretti');
+}
+
+async function doRegister(){
+  const email=document.getElementById('inRegEmail').value.trim();
+  const pw=document.getElementById('inRegPw').value;
+  const pw2=document.getElementById('inRegPw2').value;
+  if(!email||!pw){showAuthErr('Reg','Inserisci tutti i campi');return;}
+  if(pw.length<8){showAuthErr('Reg','Password minimo 8 caratteri');return;}
+  if(pw!==pw2){showAuthErr('Reg','Le password non coincidono');return;}
+  const btn=document.getElementById('btnReg');
+  btn.disabled=true;btn.textContent='Creazione…';
+  const{error}=await sb.auth.signUp({email,password:pw});
+  btn.disabled=false;btn.textContent='Crea account →';
+  if(error){showAuthErr('Reg',error.message);}
+  else{document.getElementById('okReg').textContent='Account creato! Controlla la tua email.';document.getElementById('okReg').classList.add('on');}
+}
+
+async function doLogout(){await sb.auth.signOut();}
+
+function showAuthErr(form,msg){
+  const id=form==='Login'?'errLogin':'errReg';
+  const el=document.getElementById(id);
+  el.textContent=msg;el.classList.add('on');
+  setTimeout(()=>el.classList.remove('on'),4000);
+}
+
+// ══ PROFILO CLOUD ══
+async function caricaProfilo(){
+  const{data}=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
+  if(data&&data.nome){profilo=data;aggiornaProfilo();}
+  else{document.getElementById('modalProfilo').classList.add('on');}
+}
+
+async function saveProfilo(){
+  const nome=document.getElementById('m_nome').value.trim();
+  const settore=document.getElementById('m_settore').value;
+  if(!nome||!settore){toast('Inserisci nome e settore','err');return;}
+  const updates={id:user.id,nome,settore,
+    citta:document.getElementById('m_citta').value.trim(),
+    descrizione:document.getElementById('m_desc').value.trim(),
+    target:document.getElementById('m_target').value.trim(),
+    tono:chipVal('m_tono')||'Friendly'};
+  const{error}=await sb.from('profiles').upsert(updates);
+  if(error){toast('Errore salvataggio','err');return;}
+  profilo={...profilo,...updates};
+  aggiornaProfilo();
+  document.getElementById('modalProfilo').classList.remove('on');
+  showState('empty');
+  toast('Profilo salvato');
+}
+
+// ══ QUOTA CLOUD ══
+async function caricaQuota(){
+  const now=new Date();
+  const som=new Date(now.getFullYear(),now.getMonth(),1).toISOString();
+  const{count}=await sb.from('scripts').select('*',{count:'exact',head:true}).eq('user_id',user.id).gte('created_at',som);
+  scriptMeseCount=count||0;
+  document.getElementById('quotaCount').textContent=`${scriptMeseCount} / ${MAX_MESE}`;
+  document.getElementById('quotaFill').style.width=`${Math.min(100,(scriptMeseCount/MAX_MESE)*100)}%`;
+}
+
+function puoGenerare(){return PLAN==='plus'||scriptMeseCount<MAX_MESE;}
+
+// ══ SALVA CLOUD ══
+async function salvaArch(){
+  if(!corrente||!user)return;
+  const{error}=await sb.from('scripts').insert({
+    user_id:user.id,tema:corrente.tema,formato:corrente.formato,
+    durata:corrente.durata,obiettivi:corrente.obiettivi,
+    reference:corrente.reference||null,trend:corrente.trend||[],
+    hook:corrente.hook,sviluppo:corrente.sviluppo,
+    cta:corrente.cta,regia:corrente.regia,caption:corrente.caption,
+  });
+  if(error){toast('Errore salvataggio','err');return;}
+  await caricaQuota();
+  toast('Script salvato ✓');
+}
+
+// ══ ARCHIVIO CLOUD ══
+async function renderArch(){
+  const body=document.getElementById('archBody');
+  body.innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted);font-size:0.82rem;">Caricamento…</div>';
+  const{data,error}=await sb.from('scripts').select('*').eq('user_id',user.id).order('created_at',{ascending:false}).limit(50);
+  if(error||!data?.length){body.innerHTML='<div class="arch-empty">Nessuno script salvato ancora.</div>';return;}
+  window._cache=data;
+  body.innerHTML=data.map(s=>`
+    <div class="arch-item">
+      <div class="arch-date">${fmtDate(s.created_at)}</div>
+      <div class="arch-topic">${s.tema}</div>
+      <div class="arch-preview">${s.hook||s.formato||''}</div>
+      <div class="arch-row">
+        <button class="arch-btn" onclick="apriScript(${s.id})">Apri</button>
+        <button class="arch-btn" onclick="pdfScript(${s.id})">PDF</button>
+        <button class="arch-btn del" onclick="eliminaScript(${s.id})">Elimina</button>
+      </div>
+    </div>`).join('');
+}
+
+function apriScript(id){
+  const s=(window._cache||[]).find(a=>a.id===id);
+  if(!s)return;
+  corrente=s;trendTrovati=s.trend||[];
+  mostraOutput(s,s.tema,s.reference||null);closeArch();
+}
+
+function pdfScript(id){
+  const s=(window._cache||[]).find(a=>a.id===id);
+  if(s)esportaPDFData(s);
+}
+
+async function eliminaScript(id){
+  const{error}=await sb.from('scripts').delete().eq('id',id).eq('user_id',user.id);
+  if(error){toast('Errore','err');return;}
+  await caricaQuota();toast('Eliminato');renderArch();
+}
+
+function saveProfilo(){
+  const nome=document.getElementById('m_nome').value.trim();
+  const settore=document.getElementById('m_settore').value;
+  if(!nome||!settore){toast('Inserisci nome e settore','err');return;}
+  profilo={nome,settore,citta:document.getElementById('m_citta').value.trim(),desc:document.getElementById('m_desc').value.trim(),target:document.getElementById('m_target').value.trim(),tono:chipVal('m_tono')||'Friendly',at:Date.now()};
+  localStorage.setItem('rs_profilo',JSON.stringify(profilo));
+  document.getElementById('modalProfilo').classList.remove('on');
+  aggiornaProfilo();caricaQuota();showState('empty');
+  toast('Profilo salvato — benvenuto su Reel Script');
+}
+
+function openEditProfilo(){
+  if(!profilo)return;
+  document.getElementById('m_nome').value=profilo.nome||'';
+  document.getElementById('m_settore').value=profilo.settore||'';
+  document.getElementById('m_citta').value=profilo.citta||'';
+  document.getElementById('m_desc').value=profilo.descrizione||profilo.desc||'';
+  document.getElementById('m_target').value=profilo.target||'';
+  document.querySelectorAll('#m_tono .chip').forEach(c=>c.classList.toggle('on',c.dataset.v===profilo.tono));
+  document.getElementById('modalProfilo').classList.add('on');
+}
+
+function aggiornaProfilo(){
+  if(!profilo)return;
+  const ini=profilo.nome.charAt(0).toUpperCase();
+  document.getElementById('profileCard').style.display='flex';
+  document.getElementById('profAv').textContent=ini;
+  document.getElementById('profNome').textContent=profilo.nome;
+  document.getElementById('profSettore').textContent=profilo.settore+(profilo.citta?' · '+profilo.citta:'');
+  document.getElementById('navProfile').style.display='flex';
+  document.getElementById('navAv').textContent=ini;
+  document.getElementById('navNome').textContent=profilo.nome;
+}
+
+
+function nMese(){const now=new Date();return getArch().filter(s=>{const d=new Date(s.at);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).length;}
+
+function puoGenerare(){return PLAN==='plus'||scriptMeseCount<MAX_MESE;}
+
+function initChips(){
+  ['m_tono','f_formato','f_durata'].forEach(id=>{document.querySelectorAll(`#${id} .chip`).forEach(c=>{c.onclick=()=>{document.querySelectorAll(`#${id} .chip`).forEach(x=>x.classList.remove('on'));c.classList.add('on');};});});
+  document.querySelectorAll('#f_obiettivo .chip').forEach(c=>{c.onclick=()=>c.classList.toggle('on');});
+}
+function chipVal(id){const el=document.querySelector(`#${id} .chip.on`);return el?el.dataset.v:null;}
+function chipsVal(id){return[...document.querySelectorAll(`#${id} .chip.on`)].map(c=>c.dataset.v);}
+
+function showState(s){
+  document.getElementById('emptyState').style.display=s==='empty'?'flex':'none';
+  document.getElementById('loaderState').classList.toggle('on',s==='loader');
+  document.getElementById('referenceState').classList.toggle('on',s==='reference');
+  document.getElementById('outputWrap').classList.toggle('on',s==='output');
+  document.getElementById('stepBar').style.display=s!=='empty'?'flex':'none';
+  const steps={empty:0,loader:1,reference:2,output:3};
+  const cur=steps[s]||0;
+  ['s1','s2','s3'].forEach((id,i)=>{const el=document.getElementById(id);el.className='step-item';if(i+1<cur)el.classList.add('done');else if(i+1===cur)el.classList.add('active');});
+}
+
+async function cercaReference(){
+  if(!profilo){toast('Prima configura il profilo azienda','err');return;}
+  const tema=document.getElementById('f_tema').value.trim();
+  if(!tema){toast("Inserisci l'argomento del reel",'err');return;}
+  if(!puoGenerare()){toast('Limite mensile raggiunto — passa al piano Plus','err');return;}
+  briefCorrente={tema,formato:chipVal('f_formato')||'Reel Instagram',durata:chipVal('f_durata')||'15–30 secondi',obiettivi:chipsVal('f_obiettivo')};
+  refSelezionata=null;
+  showState('loader');
+  document.getElementById('btnCerca').disabled=true;
+  document.getElementById('loaderTitle').textContent='Ricerca video TikTok in corso…';
+  document.getElementById('loaderSub').textContent=`Analizzo il settore ${profilo.settore} per trovare i video più performanti`;
+  try{
+    const res=await fetch('/.netlify/functions/trend',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({settore:profilo.settore,tema:briefCorrente.tema,obiettivi:briefCorrente.obiettivi})});
+    if(!res.ok)throw new Error(`Errore ricerca ${res.status}`);
+    const data=await res.json();
+    trendTrovati=data.trend||[];
+    renderReference(trendTrovati);
+    showState('reference');
+  }catch(e){showState('empty');toast('Errore nella ricerca: '+e.message,'err');console.error(e);}
+  finally{document.getElementById('btnCerca').disabled=false;}
+}
+
+function renderReference(trends){
+  const grid=document.getElementById('referenceGrid');
+  if(!trends.length){grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted);"><div style="font-size:2rem;margin-bottom:1rem;">🔍</div><div style="font-weight:700;margin-bottom:0.5rem;">Nessun video trovato</div><div style="font-size:0.82rem;">Prova a modificare l'argomento o procedi senza reference.</div></div>`;return;}
+  grid.innerHTML=trends.map((t,i)=>`
+    <div class="ref-card" id="refCard${i}" onclick="selezionaRef(${i})">
+      <div class="ref-num">Video 0${i+1}</div>
+      <div class="ref-thumb">
+        <div class="ref-thumb-icon">▶</div>
+        <div class="ref-thumb-label">${t.descrizione}</div>
+      </div>
+      <div class="ref-title">${t.descrizione}</div>
+      <div class="ref-meta">
+        ${t.views?`<span class="ref-stat">👁 ${t.views}</span>`:''}
+        ${t.interazioni?`<span class="ref-stat">❤ ${t.interazioni}</span>`:''}
+      </div>
+      <div class="ref-reason">${t.motivo||''}</div>
+      <a href="${t.url}" target="_blank" class="ref-link" onclick="event.stopPropagation()">Apri su TikTok ↗</a>
+    </div>`).join('');
+}
+
+function selezionaRef(i){
+  document.querySelectorAll('.ref-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('refCard'+i)?.classList.add('selected');
+  refSelezionata=trendTrovati[i];
+  document.getElementById('refFooterNote').textContent=`Reference selezionata: "${refSelezionata.descrizione}"`;
+  document.getElementById('btnGeneraConRef').disabled=false;
+}
+
+async function generaConRef(){if(refSelezionata)await generaScript(refSelezionata);}
+async function generaSenzaRef(){await generaScript(null);}
+
+async function generaScript(ref){
+  showState('loader');
+  document.getElementById('loaderTitle').textContent='Generazione script in corso…';
+  document.getElementById('loaderSub').textContent=`Costruisco lo script personalizzato per ${profilo.nome}`;
+  const{tema,formato,durata,obiettivi}=briefCorrente;
+  const refInfo=ref
+    ?`\n\nVIDEO DI RIFERIMENTO SCELTO:\n- Titolo: ${ref.descrizione}\n- URL: ${ref.url}\n- Rilevanza: ${ref.motivo||'–'}\n\nIMPORTANTE: Analizza lo stile, il ritmo e la struttura narrativa di questo video. Usa quell'approccio come ispirazione per costruire lo script, adattandolo al brand ${profilo.nome}.`
+    :'\n\nNessun video di riferimento — costruisci lo script basandoti esclusivamente sul brief e sul profilo azienda.';
+  const system=`Sei Reel Script, il generatore di script AI di Moduso. Generi script professionali per social media italiani.\n\nPROFILO AZIENDA:\n- Nome: ${profilo.nome}\n- Settore: ${profilo.settore}\n- Città: ${profilo.citta||'Italia'}\n- Descrizione: ${profilo.desc||'–'}\n- Pubblico target: ${profilo.target||'pubblico generale'}\n- Tono: ${profilo.tono}\n\nRispondi SOLO con JSON valido. Nessun testo fuori dal JSON. Nessun backtick.\n\nSchema:\n{\n  "hook": "hook per i primi 3 secondi — max 2 frasi che fermano lo scroll",\n  "sviluppo": "sviluppo narrativo completo con punti numerati",\n  "cta": "call to action finale specifica",\n  "regia": "consigli pratici: inquadrature, ritmo, musica, effetti",\n  "caption": "caption completa con emoji e almeno 12 hashtag"\n}`;
+  const user=`Crea lo script per questo reel:\n\nARGOMENTO: ${tema}\nFORMATO: ${formato}\nDURATA: ${durata}\nOBIETTIVO: ${obiettivi.join(', ')||'Brand awareness'}${refInfo}`;
+  try{
+    const res=await fetch('/.netlify/functions/genera',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system,messages:[{role:'user',content:user}]})});
+    if(!res.ok)throw new Error(`Errore script ${res.status}`);
+    const data=await res.json();
+    let raw='';
+    for(const b of(data.content||[])){if(b.type==='text')raw+=b.text;}
+    let result;
+    try{const clean=raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();const m=clean.match(/\{[\s\S]*\}/);result=JSON.parse(m?.[0]||'{}');}
+    catch{throw new Error('Risposta non valida — riprova');}
+    corrente={id:Date.now(),tema,formato,durata,obiettivi,at:Date.now(),reference:ref,trend:trendTrovati,...result};
+    mostraOutput(result,tema,ref);
+  }catch(e){showState('reference');toast('Errore: '+e.message,'err');console.error(e);}
+}
+
+function mostraOutput(r,tema,ref){
+  showState('output');
+  document.getElementById('outputTopic').textContent=tema.length>60?tema.slice(0,60)+'…':tema;
+  const refWrap=document.getElementById('outputReference');
+  if(ref){refWrap.style.display='flex';document.getElementById('outputRefTitle').textContent=ref.descrizione;document.getElementById('outputRefLink').href=ref.url;}
+  else{refWrap.style.display='none';}
+  const tl=document.getElementById('trendsList');
+  if(trendTrovati.length){tl.innerHTML=trendTrovati.map((t,i)=>`<div class="trend-item"><div class="trend-n">0${i+1}</div><div class="trend-body"><div class="trend-desc">${t.descrizione}</div><a href="${t.url}" target="_blank" class="trend-url">${t.url}</a>${t.motivo?`<div class="trend-motivo">${t.motivo}</div>`:''}</div></div>`).join('');}
+  else{tl.innerHTML='<div style="font-size:0.78rem;color:rgba(245,245,240,0.35);padding:0.5rem 0;">Script generato senza video di riferimento.</div>';}
+  document.getElementById('out-hook').textContent=r.hook||'–';
+  document.getElementById('out-sviluppo').textContent=r.sviluppo||'–';
+  document.getElementById('out-cta').textContent=r.cta||'–';
+  document.getElementById('out-regia').textContent=r.regia||'–';
+  document.getElementById('out-caption').textContent=r.caption||'–';
+  showTab('hook',document.querySelector('.tab-btn'));
+}
+
+function showTab(name,btn){
+  document.querySelectorAll('.tab-pane').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('tab-'+name)?.classList.add('on');
+  if(btn)btn.classList.add('on');
+}
+
+function reset(){corrente=null;refSelezionata=null;trendTrovati=[];briefCorrente={};document.getElementById('f_tema').value='';showState('empty');}
+
+function salvaArch(){
+  if(!corrente)return;
+  const arch=getArch();
+  if(!arch.find(s=>s.id===corrente.id)){arch.unshift(corrente);localStorage.setItem('rs_arch',JSON.stringify(arch));caricaQuota();toast('Script salvato in archivio');}
+  else{toast('Già salvato');}
+}
+
+function openArch(){renderArch();document.getElementById('archBackdrop').classList.add('on');document.getElementById('archPanel').classList.add('on');}
+function closeArch(){document.getElementById('archBackdrop').classList.remove('on');document.getElementById('archPanel').classList.remove('on');}
+
+function renderArch(){
+  const arch=getArch();const body=document.getElementById('archBody');
+  if(!arch.length){body.innerHTML='<div class="arch-empty">Nessuno script salvato ancora.</div>';return;}
+  body.innerHTML=arch.map(s=>`<div class="arch-item"><div class="arch-date">${fmtDate(s.at)}</div><div class="arch-topic">${s.tema}</div><div class="arch-preview">${s.hook||s.formato}</div><div class="arch-row"><button class="arch-btn" onclick="apriScript(${s.id})">Apri</button><button class="arch-btn" onclick="pdfScript(${s.id})">PDF</button><button class="arch-btn del" onclick="eliminaScript(${s.id})">Elimina</button></div></div>`).join('');
+}
+
+function apriScript(id){const s=getArch().find(a=>a.id===id);if(!s)return;corrente=s;trendTrovati=s.trend||[];mostraOutput(s,s.tema,s.reference||null);closeArch();}
+function eliminaScript(id){const arch=getArch().filter(s=>s.id!==id);localStorage.setItem('rs_arch',JSON.stringify(arch));renderArch();caricaQuota();toast('Script eliminato');}
+
+function copyScript(){
+  if(!corrente)return;
+  const ref=corrente.reference?`\nREFERENCE: ${corrente.reference.descrizione} — ${corrente.reference.url}\n`:'';
+  const t=`REEL SCRIPT — ${corrente.tema}\n${profilo?.nome||''}${ref}\nHOOK:\n${corrente.hook}\n\nSVILUPPO:\n${corrente.sviluppo}\n\nCALL TO ACTION:\n${corrente.cta}\n\nREGIA:\n${corrente.regia}\n\nCAPTION:\n${corrente.caption}\n\n—\nReel Script · Moduso`;
+  navigator.clipboard.writeText(t).then(()=>toast('Copiato negli appunti')).catch(()=>toast('Errore copia','err'));
+}
+
+function esportaPDF(){if(corrente)pdfScript(corrente.id,corrente);}
+
+function pdfScript(id,s){
+  s=s||getArch().find(a=>a.id===id);if(!s)return;
+  const ref=s.reference;
+  const html=`<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Script · ${s.tema}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;background:#fff;color:#0A0A0A;padding:48px;max-width:680px;margin:0 auto;font-size:14px;line-height:1.7;-webkit-font-smoothing:antialiased}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:2px solid #0A0A0A;margin-bottom:32px}.brand{font-size:16px;font-weight:900;letter-spacing:-0.03em}.brand span{color:#C8F135}.meta{font-size:11px;color:#6B6B6B;text-align:right;line-height:1.6}.topic{font-size:24px;font-weight:900;letter-spacing:-0.04em;line-height:1.15;margin-bottom:10px}.tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}.tag{background:#F5F5F0;border:1px solid #E8E8E3;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:600;color:#6B6B6B}.ref-box{background:#F5F5F0;border-left:3px solid #6E6BFF;padding:10px 14px;margin-bottom:28px;border-radius:0 6px 6px 0}.ref-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6E6BFF;margin-bottom:4px}.ref-title{font-size:13px;font-weight:700;margin-bottom:2px}.ref-url{font-size:11px;color:#6E6BFF}.section{margin-bottom:28px}.slabel{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6B6B6B;margin-bottom:10px;display:block}.stext{font-size:14px;line-height:1.8;color:#3a3a3a;white-space:pre-wrap}.stext.hero{font-size:19px;font-weight:700;color:#0A0A0A;letter-spacing:-0.02em;line-height:1.5}.footer{margin-top:48px;padding-top:14px;border-top:1px solid #E8E8E3;display:flex;justify-content:space-between;font-size:10px;color:#bbb}@media print{body{padding:24px}}
+/* ── AUTH ── */
+.auth-page{display:none;min-height:100vh;background:var(--ivory);align-items:center;justify-content:center;padding:2rem;position:fixed;inset:0;z-index:500}
+.auth-page.on{display:flex}
+.auth-box{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:420px;padding:2.5rem 2rem;box-shadow:var(--shadow-md)}
+.auth-logo{font-size:1.1rem;font-weight:900;letter-spacing:-0.02em;margin-bottom:2rem}
+.auth-logo span{color:var(--pulse)}
+.auth-title{font-size:1.5rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:0.4rem}
+.auth-sub{font-size:0.82rem;color:var(--muted);margin-bottom:1.75rem;line-height:1.55}
+.auth-field{margin-bottom:1rem}
+.auth-label{display:block;font-size:0.65rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem}
+.auth-input{width:100%;background:var(--ivory);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 0.875rem;color:var(--void);font-family:'Inter',sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.15s}
+.auth-input:focus{border-color:var(--void);background:var(--white)}
+.auth-input::placeholder{color:#bbb}
+.auth-btn{width:100%;padding:0.85rem;background:var(--void);color:var(--ivory);font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:700;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:all 0.15s;margin-top:0.5rem}
+.auth-btn:hover{background:#1a1a1a}
+.auth-btn:disabled{opacity:0.5;cursor:not-allowed}
+.auth-switch{text-align:center;font-size:0.82rem;color:var(--muted);margin-top:1.25rem}
+.auth-switch a{color:var(--void);font-weight:700;cursor:pointer;text-decoration:underline}
+.auth-err{background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.2);border-radius:var(--radius-sm);padding:0.75rem 1rem;font-size:0.8rem;color:#dc2626;margin-bottom:1rem;display:none}
+.auth-err.on{display:block}
+.auth-ok{background:rgba(200,241,53,0.1);border:1px solid rgba(200,241,53,0.3);border-radius:var(--radius-sm);padding:0.75rem 1rem;font-size:0.8rem;color:#5a7a00;margin-bottom:1rem;display:none}
+.auth-ok.on{display:block}
+.nav-logout{font-size:0.75rem;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;padding:0.35rem 0.5rem}
+.nav-logout:hover{color:var(--void)}
+</style></head><body>
+<div class="auth-page on" id="authPage">
+  <div class="auth-box">
+    <div class="auth-logo">MODUSO<span>.</span> <span style="font-weight:400;color:var(--muted);font-size:0.85rem;">Reel Script</span></div>
+    <div id="formLogin">
+      <div class="auth-title">Accedi</div>
+      <div class="auth-sub">Inserisci le tue credenziali per accedere a Reel Script.</div>
+      <div class="auth-err" id="errLogin"></div>
+      <div class="auth-field"><label class="auth-label">Email</label><input type="email" class="auth-input" id="inEmail" placeholder="mario@esempio.it" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="auth-field"><label class="auth-label">Password</label><input type="password" class="auth-input" id="inPw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="auth-btn" id="btnLogin" onclick="doLogin()">Accedi →</button>
+      <div class="auth-switch">Non hai un account? <a onclick="mostraReg()">Registrati</a></div>
+    </div>
+    <div id="formReg" style="display:none;">
+      <div class="auth-title">Crea account</div>
+      <div class="auth-sub">Inizia con Reel Script.</div>
+      <div class="auth-err" id="errReg"></div>
+      <div class="auth-ok" id="okReg"></div>
+      <div class="auth-field"><label class="auth-label">Email</label><input type="email" class="auth-input" id="inRegEmail" placeholder="mario@esempio.it"></div>
+      <div class="auth-field"><label class="auth-label">Password</label><input type="password" class="auth-input" id="inRegPw" placeholder="Minimo 8 caratteri"></div>
+      <div class="auth-field"><label class="auth-label">Conferma password</label><input type="password" class="auth-input" id="inRegPw2" placeholder="Ripeti la password"></div>
+      <button class="auth-btn" id="btnReg" onclick="doRegister()">Crea account →</button>
+      <div class="auth-switch">Hai già un account? <a onclick="mostraLogin()">Accedi</a></div>
+    </div>
+  </div>
+</div>
+
+<div class="header"><div class="brand">MODUSO<span>.</span> Reel Script</div><div class="meta">${profilo?.nome||''}<br>${s.formato||'Reel'} · ${s.durata||''}<br>${fmtDate(s.at)}</div></div>
+<div class="topic">${s.tema}</div>
+<div class="tags">${(s.obiettivi||[]).map(o=>`<span class="tag">${o}</span>`).join('')}</div>
+${ref?`<div class="ref-box"><div class="ref-label">Video reference scelto</div><div class="ref-title">${ref.descrizione}</div><div class="ref-url">${ref.url}</div></div>`:'<div style="margin-bottom:28px;"></div>'}
+<div class="section"><span class="slabel">Hook — Primi 3 secondi</span><div class="stext hero">${s.hook||'–'}</div></div>
+<div class="section"><span class="slabel">Sviluppo narrativo</span><div class="stext">${s.sviluppo||'–'}</div></div>
+<div class="section"><span class="slabel">Call to Action</span><div class="stext">${s.cta||'–'}</div></div>
+<div class="section"><span class="slabel">Consigli di regia</span><div class="stext">${s.regia||'–'}</div></div>
+<div class="section"><span class="slabel">Caption + Hashtag</span><div class="stext">${s.caption||'–'}</div></div>
+<div class="footer"><span>Reel Script · Powered by Moduso</span><span>moduso.it</span></div>
+</body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();setTimeout(()=>w.print(),600);
+}
+
+function fmtDate(ts){return new Date(ts).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});}
+function toast(msg,type='ok'){const el=document.getElementById('toast');el.textContent=msg;el.className=`toast on ${type}`;setTimeout(()=>{el.className='toast';},3000);}
+
+init();
+</script>
+</body>
+</html>
