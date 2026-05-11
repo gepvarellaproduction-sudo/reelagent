@@ -1,0 +1,13 @@
+[build]
+  functions = "netlify/functions"
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+
+# Aggiorna i trend ogni 24 ore alle 3:00 di notte
+[functions."aggiorna-trend"]
+  schedule = "0 3 * * *"
