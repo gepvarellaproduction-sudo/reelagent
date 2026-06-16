@@ -1,10 +1,7 @@
 // Function schedulata: ogni notte cerca reference TikTok per ogni settore
 // e li salva nella tabella `trends` di Supabase.
-// Cosi' trend.js puo' leggere dal DB in modo istantaneo (niente timeout 504).
 //
-// Puo' essere lanciata anche a mano per popolare subito il DB:
-//   - GET con ?settore=Ristorazione  -> aggiorna solo quel settore
-//   - GET senza parametri            -> aggiorna tutti i settori a rotazione
+// Lancio manuale: GET con ?settore=Ristorazione  -> aggiorna solo quel settore
 //
 // Soglie: >= 10.000 views e >= 1.000 interazioni. URL tiktok.com reali.
 
@@ -35,7 +32,6 @@ function validoTikTok(t) {
   return parseCount(t.views) >= MIN_VIEWS && parseCount(t.interazioni) >= MIN_INTERAZIONI;
 }
 
-// cerca i reference per un singolo settore via web search
 async function cercaSettore(settore) {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -62,7 +58,7 @@ Rispondi SOLO con JSON, nessun testo fuori:
       messages: [{ role: 'user', content: `Settore: "${settore}". Trova 5 reference TikTok performanti del settore. Solo JSON.` }]
     })
   });
-  if (!response.ok) return [];
+  if (!response.ok) return { trend: [], raw: `api ${response.status}` };
   const data = await response.json();
   let raw = '';
   for (const b of (data.content || [])) { if (b.type === 'text') raw += b.text; }
@@ -71,11 +67,12 @@ Rispondi SOLO con JSON, nessun testo fuori:
     const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const m = clean.match(/\{[\s\S]*\}/);
     result = JSON.parse(m?.[0] || '{"trend":[]}');
-  } catch { return []; }
-  return (result.trend || []).filter(validoTikTok);
+  } catch { return { trend: [], raw: raw.slice(0,200) }; }
+  const tutti = result.trend || [];
+  const validi = tutti.filter(validoTikTok);
+  return { trend: validi, grezzi: tutti.length, raw: '' };
 }
 
-// salva i trend di un settore: cancella i vecchi e inserisce i nuovi
 async function salvaSettore(settore, trend) {
   if (!trend.length) return 0;
   const base = process.env.SUPABASE_URL;
@@ -85,9 +82,7 @@ async function salvaSettore(settore, trend) {
     'Authorization': `Bearer ${key}`,
     'Content-Type': 'application/json',
   };
-  // 1. cancella i vecchi trend del settore
   await fetch(`${base}/rest/v1/trends?settore=eq.${encodeURIComponent(settore)}`, { method: 'DELETE', headers: h });
-  // 2. inserisci i nuovi
   const righe = trend.map(t => ({
     settore,
     descrizione: t.descrizione || '',
@@ -98,22 +93,25 @@ async function salvaSettore(settore, trend) {
     updated_at: new Date().toISOString(),
   }));
   const res = await fetch(`${base}/rest/v1/trends`, { method: 'POST', headers: h, body: JSON.stringify(righe) });
-  return res.ok ? righe.length : 0;
+  if (!res.ok) {
+    const errTxt = await res.text();
+    throw new Error(`save ${res.status}: ${errTxt.slice(0,120)}`);
+  }
+  return righe.length;
 }
 
 exports.handler = async (event) => {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
   try {
-    // settore singolo da querystring (per lancio manuale), altrimenti tutti
     const qsSettore = event.queryStringParameters && event.queryStringParameters.settore;
     const lista = qsSettore ? [qsSettore] : SETTORI;
 
     const report = {};
     for (const settore of lista) {
       try {
-        const trend = await cercaSettore(settore);
-        const n = await salvaSettore(settore, trend);
-        report[settore] = n;
+        const r = await cercaSettore(settore);
+        const salvati = await salvaSettore(settore, r.trend);
+        report[settore] = { grezzi: r.grezzi || 0, validi: r.trend.length, salvati, raw: r.raw || '' };
       } catch (e) {
         report[settore] = `errore: ${e.message}`;
       }
