@@ -3,7 +3,7 @@
 // Tutto ciò che è dinamico (Supabase, Anthropic, Netlify Functions) passa
 // SEMPRE dalla rete e non viene mai messo in cache.
 
-const CACHE = 'titano-v1';
+const CACHE = 'titano-v2';
 
 // Il guscio minimo dell'app. Aggiungi qui altri asset statici locali se presenti.
 const SHELL = [
