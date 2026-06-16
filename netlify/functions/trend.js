@@ -59,7 +59,7 @@ exports.handler = async (event) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 900,
           system: `Sei un selezionatore di reference TikTok per content creator. Ricevi una lista di video reali (gia' filtrati per soglie minime) e devi sceglierne 3 per ispirare un nuovo reel.
 
@@ -108,7 +108,7 @@ Rispondi SOLO con JSON, nessun testo fuori:
         'anthropic-beta': 'web-search-2025-03-05',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1500,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         system: `Cerchi video TikTok REALI da usare come reference per un reel di un'attivita' locale italiana.
