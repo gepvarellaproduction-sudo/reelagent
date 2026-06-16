@@ -1,114 +1,125 @@
-// Legge i trend dal database Supabase invece di chiamare Claude ogni volta
-// Questo elimina il problema di rate limit con 100+ utenti
+// Function schedulata: ogni notte cerca reference TikTok per ogni settore
+// e li salva nella tabella `trends` di Supabase.
+// Cosi' trend.js puo' leggere dal DB in modo istantaneo (niente timeout 504).
+//
+// Puo' essere lanciata anche a mano per popolare subito il DB:
+//   - GET con ?settore=Ristorazione  -> aggiorna solo quel settore
+//   - GET senza parametri            -> aggiorna tutti i settori a rotazione
+//
+// Soglie: >= 10.000 views e >= 1.000 interazioni. URL tiktok.com reali.
+
+const SETTORI = [
+  'Ristorazione', 'Moda e abbigliamento', 'Beauty e estetica', 'Fitness e sport',
+  'Artigianato', 'Retail e negozi', 'Turismo e hospitality', 'Professioni e consulenza',
+  'Tecnologia', 'Arte e creatività', 'Immobiliare', 'Salute e benessere',
+  'Educazione e formazione', 'Altro'
+];
+
+function parseCount(v) {
+  if (v == null) return 0;
+  if (typeof v === 'number') return v;
+  let s = String(v).trim().toLowerCase().replace(/\s|views|view|like|likes|interazioni/g, '');
+  let mult = 1;
+  if (s.endsWith('k')) { mult = 1e3; s = s.slice(0, -1); }
+  else if (s.endsWith('m')) { mult = 1e6; s = s.slice(0, -1); }
+  else if (s.endsWith('b')) { mult = 1e9; s = s.slice(0, -1); }
+  s = s.replace(/\.(?=\d{3}\b)/g, '').replace(',', '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : Math.round(n * mult);
+}
+const MIN_VIEWS = 10000;
+const MIN_INTERAZIONI = 1000;
+function validoTikTok(t) {
+  if (!t || !t.url) return false;
+  if (!String(t.url).toLowerCase().includes('tiktok.com')) return false;
+  return parseCount(t.views) >= MIN_VIEWS && parseCount(t.interazioni) >= MIN_INTERAZIONI;
+}
+
+// cerca i reference per un singolo settore via web search
+async function cercaSettore(settore) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'web-search-2025-03-05',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1500,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      system: `Cerchi video TikTok REALI e performanti nel settore indicato, da usare come reference per content creator di attivita' locali italiane.
+
+REGOLE OBBLIGATORIE:
+- Trova 5 video TikTok reali e inerenti al SETTORE.
+- Ogni video deve avere ALMENO 10.000 views e ALMENO 1.000 interazioni. Scarta quelli sotto soglia.
+- Usa solo URL tiktok.com reali trovati nella ricerca. Non inventare link o numeri.
+- "interazioni" = totale stimato like+commenti+condivisioni.
+
+Rispondi SOLO con JSON, nessun testo fuori:
+{ "trend": [ { "descrizione": "...", "url": "URL tiktok.com reale", "views": "es. 250000", "interazioni": "es. 18000", "motivo": "perche' funziona / cosa lo rende efficace" } ] }`,
+      messages: [{ role: 'user', content: `Settore: "${settore}". Trova 5 reference TikTok performanti del settore. Solo JSON.` }]
+    })
+  });
+  if (!response.ok) return [];
+  const data = await response.json();
+  let raw = '';
+  for (const b of (data.content || [])) { if (b.type === 'text') raw += b.text; }
+  let result;
+  try {
+    const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const m = clean.match(/\{[\s\S]*\}/);
+    result = JSON.parse(m?.[0] || '{"trend":[]}');
+  } catch { return []; }
+  return (result.trend || []).filter(validoTikTok);
+}
+
+// salva i trend di un settore: cancella i vecchi e inserisce i nuovi
+async function salvaSettore(settore, trend) {
+  if (!trend.length) return 0;
+  const base = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  const h = {
+    'apikey': key,
+    'Authorization': `Bearer ${key}`,
+    'Content-Type': 'application/json',
+  };
+  // 1. cancella i vecchi trend del settore
+  await fetch(`${base}/rest/v1/trends?settore=eq.${encodeURIComponent(settore)}`, { method: 'DELETE', headers: h });
+  // 2. inserisci i nuovi
+  const righe = trend.map(t => ({
+    settore,
+    descrizione: t.descrizione || '',
+    url: t.url,
+    views: String(t.views || ''),
+    interazioni: String(t.interazioni || ''),
+    motivo: t.motivo || '',
+    updated_at: new Date().toISOString(),
+  }));
+  const res = await fetch(`${base}/rest/v1/trends`, { method: 'POST', headers: h, body: JSON.stringify(righe) });
+  return res.ok ? righe.length : 0;
+}
 
 exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }, body: '' };
-  }
-  if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method Not Allowed' };
-
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
-
   try {
-    const { settore, tema } = JSON.parse(event.body);
+    // settore singolo da querystring (per lancio manuale), altrimenti tutti
+    const qsSettore = event.queryStringParameters && event.queryStringParameters.settore;
+    const lista = qsSettore ? [qsSettore] : SETTORI;
 
-    // 1. Leggi trend dal database per questo settore
-    const dbRes = await fetch(
-      `${process.env.SUPABASE_URL}/rest/v1/trends?settore=eq.${encodeURIComponent(settore)}&limit=5`,
-      {
-        headers: {
-          'apikey': process.env.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
-        }
+    const report = {};
+    for (const settore of lista) {
+      try {
+        const trend = await cercaSettore(settore);
+        const n = await salvaSettore(settore, trend);
+        report[settore] = n;
+      } catch (e) {
+        report[settore] = `errore: ${e.message}`;
       }
-    );
-
-    let dbTrends = [];
-    if (dbRes.ok) {
-      dbTrends = await dbRes.json();
     }
-
-    // 2. Se il DB ha trend freschi, usali
-    if (dbTrends && dbTrends.length >= 3) {
-      // Filtra per rilevanza rispetto al tema usando Claude (chiamata leggera, no web search)
-      const rankRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 800,
-          system: `Hai una lista di video TikTok. Scegli i 3 più rilevanti per il tema dato e aggiorna il campo "motivo" per spiegare la rilevanza specifica.
-Rispondi SOLO con JSON: { "trend": [ { "descrizione": "...", "url": "...", "views": "...", "interazioni": "...", "motivo": "..." } ] }`,
-          messages: [{
-            role: 'user',
-            content: `Tema: "${tema}"\nSettore: "${settore}"\n\nVideo disponibili:\n${JSON.stringify(dbTrends, null, 2)}\n\nScegli i 3 più rilevanti e aggiorna il motivo. Solo JSON.`
-          }]
-        })
-      });
-
-      if (rankRes.ok) {
-        const rankData = await rankRes.json();
-        let raw = '';
-        for (const b of (rankData.content || [])) { if (b.type === 'text') raw += b.text; }
-        try {
-          const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-          const m = clean.match(/\{[\s\S]*\}/);
-          const result = JSON.parse(m?.[0] || '{}');
-          if (result.trend?.length) {
-            return { statusCode: 200, headers, body: JSON.stringify(result) };
-          }
-        } catch {}
-      }
-
-      // Fallback: restituisci i primi 3 dal DB senza ranking
-      return { statusCode: 200, headers, body: JSON.stringify({ trend: dbTrends.slice(0, 3) }) };
-    }
-
-    // 3. Se il DB è vuoto, chiamata diretta con web search (fallback)
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'web-search-2025-03-05',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1200,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        system: `Ricerca video TikTok reali nel settore richiesto. Rispondi SOLO con JSON.
-Schema: { "trend": [ { "descrizione": "...", "url": "URL TikTok reale", "views": "...", "interazioni": "...", "motivo": "..." } ] }
-Trova 3 video con 100.000+ views.`,
-        messages: [{
-          role: 'user',
-          content: `Trova 3 video TikTok nel settore "${settore}" correlati a "${tema}". Solo JSON.`
-        }]
-      })
-    });
-
-    if (!response.ok) {
-      return { statusCode: response.status, headers, body: JSON.stringify({ error: 'Rate limit — riprova tra qualche minuto', trend: [] }) };
-    }
-
-    const data = await response.json();
-    let raw = '';
-    for (const b of (data.content || [])) { if (b.type === 'text') raw += b.text; }
-
-    let result;
-    try {
-      const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const m = clean.match(/\{[\s\S]*\}/);
-      result = JSON.parse(m?.[0] || '{"trend":[]}');
-    } catch { result = { trend: [] }; }
-
-    return { statusCode: 200, headers, body: JSON.stringify(result) };
-
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, aggiornati: report }) };
   } catch (e) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: e.message, trend: [] }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
   }
 };
